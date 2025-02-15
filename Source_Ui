@@ -1,0 +1,444 @@
+--// UILibrary ModuleScript
+
+local UILibrary = {}
+
+--// Services
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+------------------------------------------------
+-- Main UI Container (ScreenGui + Main Frame) --
+------------------------------------------------
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "UILibraryScreen"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0.8, 0, 0.8, 0)       -- 80% of screen size
+mainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)   -- centered with 10% margins
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.ZIndex = 2
+mainFrame.Parent = screenGui
+
+-- Rounded corners
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 6)
+mainCorner.Parent = mainFrame
+
+-- Stroke outline for main frame (optional: remove or recolor)
+local mainStroke = Instance.new("UIStroke")
+mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+mainStroke.Thickness = 1
+mainStroke.Color = Color3.fromRGB(80, 255, 80) -- Light green so it's visible
+mainStroke.Parent = mainFrame
+
+-- Drop shadow behind the main frame
+local shadow = Instance.new("ImageLabel")
+shadow.Name = "Shadow"
+shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+shadow.Size = UDim2.new(1, 30, 1, 30)
+shadow.ZIndex = 1
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+shadow.ImageTransparency = 0.5
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+shadow.Parent = mainFrame
+
+--------------------------------
+-- Top Bar (Title, Drag, etc.) --
+--------------------------------
+
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 30)
+topBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+topBar.BorderSizePixel = 0
+topBar.ZIndex = 2
+topBar.Parent = mainFrame
+
+local topBarCorner = Instance.new("UICorner")
+topBarCorner.CornerRadius = UDim.new(0, 6)
+topBarCorner.Parent = topBar
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, 0, 1, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Informant UI Library"
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 18
+titleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+titleLabel.ZIndex = 3
+titleLabel.Parent = topBar
+
+-- Subtle red–blue–violet gradient on the title text
+local titleGradient = Instance.new("UIGradient")
+titleGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(238, 130, 238))
+})
+titleGradient.Rotation = 25
+titleGradient.Parent = titleLabel
+
+-- Drag behavior for the top bar
+local dragging = false
+local dragStart, startPos
+
+topBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+topBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-------------------------------------------
+-- Tab System (Tab Buttons + Page Frames) --
+-------------------------------------------
+
+local tabBar = Instance.new("Frame")
+tabBar.Name = "TabBar"
+tabBar.Size = UDim2.new(0, 110, 1, -30) 
+tabBar.Position = UDim2.new(0, 0, 0, 30)
+tabBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+tabBar.BorderSizePixel = 0
+tabBar.ZIndex = 2
+tabBar.Parent = mainFrame
+
+local tabBarCorner = Instance.new("UICorner")
+tabBarCorner.CornerRadius = UDim.new(0, 6)
+tabBarCorner.Parent = tabBar
+
+-- Stroke for the tab bar in bright green to match your screenshot highlight
+local tabBarStroke = Instance.new("UIStroke")
+tabBarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+tabBarStroke.Thickness = 2
+tabBarStroke.Color = Color3.fromRGB(0, 255, 0)
+tabBarStroke.Parent = tabBar
+
+local tabListLayout = Instance.new("UIListLayout")
+tabListLayout.Name = "TabListLayout"
+tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabListLayout.Padding = UDim.new(0, 5)
+tabListLayout.Parent = tabBar
+
+-- Main content area
+local pagesFrame = Instance.new("Frame")
+pagesFrame.Name = "Pages"
+pagesFrame.Size = UDim2.new(1, -110, 1, -30)
+pagesFrame.Position = UDim2.new(0, 110, 0, 30)
+pagesFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+pagesFrame.BorderSizePixel = 0
+pagesFrame.ZIndex = 2
+pagesFrame.Parent = mainFrame
+
+local pagesCorner = Instance.new("UICorner")
+pagesCorner.CornerRadius = UDim.new(0, 6)
+pagesCorner.Parent = pagesFrame
+
+-- Stroke for the main content area in teal/blue
+local pagesStroke = Instance.new("UIStroke")
+pagesStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+pagesStroke.Thickness = 2
+pagesStroke.Color = Color3.fromRGB(0, 255, 255)
+pagesStroke.Parent = pagesFrame
+
+local tabs = {}
+local currentTab = nil
+
+local function showTab(tabName)
+    for name, info in pairs(tabs) do
+        info.Page.Visible = (name == tabName)
+        if name == tabName then
+            info.Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        else
+            info.Button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        end
+    end
+    currentTab = tabName
+end
+
+function UILibrary.CreateTab(tabName)
+    local tabButton = Instance.new("TextButton")
+    tabButton.Name = "TabButton_" .. tabName
+    tabButton.Size = UDim2.new(1, 0, 0, 30)
+    tabButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    tabButton.BorderSizePixel = 0
+    tabButton.Text = tabName
+    tabButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+    tabButton.Font = Enum.Font.SourceSansBold
+    tabButton.TextSize = 16
+    tabButton.ZIndex = 3
+    tabButton.Parent = tabBar
+
+    -- Page for this tab
+    local pageFrame = Instance.new("Frame")
+    pageFrame.Name = "Page_" .. tabName
+    pageFrame.Size = UDim2.new(1, 0, 1, 0)
+    pageFrame.BackgroundTransparency = 1
+    pageFrame.Visible = false
+    pageFrame.ZIndex = 2
+    pageFrame.Parent = pagesFrame
+
+    tabs[tabName] = {
+        Button = tabButton,
+        Page = pageFrame
+    }
+
+    tabButton.MouseButton1Click:Connect(function()
+        showTab(tabName)
+    end)
+
+    if not currentTab then
+        showTab(tabName)
+    end
+
+    return pageFrame
+end
+
+-------------------------------------------------------------------
+-- Gradient Button with Hover Effect
+-------------------------------------------------------------------
+
+function UILibrary.CreateButton(parent, text, callback)
+    local button = Instance.new("TextButton")
+    button.Name = "Button_" .. (text or "Button")
+    button.Size = UDim2.new(0, 150, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    button.BorderSizePixel = 0
+    button.Text = text or "Button"
+    button.TextScaled = true
+    button.Font = Enum.Font.SourceSansBold
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.ZIndex = 3
+    button.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = button
+
+    local stroke = Instance.new("UIStroke")
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Thickness = 1
+    stroke.Color = Color3.fromRGB(80, 80, 80)
+    stroke.Parent = button
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(238, 130, 238))
+    })
+    gradient.Rotation = 45
+    gradient.Parent = button
+
+    button.MouseEnter:Connect(function()
+        stroke.Color = Color3.fromRGB(120, 120, 120)
+    end)
+    button.MouseLeave:Connect(function()
+        stroke.Color = Color3.fromRGB(80, 80, 80)
+    end)
+
+    button.MouseButton1Click:Connect(function()
+        if callback then
+            callback()
+        end
+    end)
+
+    return button
+end
+
+-------------------------------------------------------------------
+-- Optional: Sliders, IntBoxes, SelectionBoxes
+-- (Same as before, only color-coded if you want.)
+-------------------------------------------------------------------
+
+function UILibrary.CreateSlider(parent, text)
+    local container = Instance.new("Frame")
+    container.Name = "Slider_" .. (text or "Slider")
+    container.Size = UDim2.new(0, 200, 0, 50)
+    container.BackgroundTransparency = 1
+    container.ZIndex = 2
+    container.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Name = "SliderLabel"
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = text or "Slider"
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 16
+    label.ZIndex = 3
+    label.Parent = container
+
+    local sliderBG = Instance.new("Frame")
+    sliderBG.Name = "SliderBG"
+    sliderBG.Size = UDim2.new(1, -20, 0, 10)
+    sliderBG.Position = UDim2.new(0, 10, 0, 30)
+    sliderBG.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    sliderBG.BorderSizePixel = 0
+    sliderBG.ZIndex = 3
+    sliderBG.Parent = container
+
+    local sliderCorner = Instance.new("UICorner")
+    sliderCorner.CornerRadius = UDim.new(0, 4)
+    sliderCorner.Parent = sliderBG
+
+    local fill = Instance.new("Frame")
+    fill.Name = "Fill"
+    fill.Size = UDim2.new(0.5, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    fill.BorderSizePixel = 0
+    fill.ZIndex = 4
+    fill.Parent = sliderBG
+
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(0, 4)
+    fillCorner.Parent = fill
+
+    return container
+end
+
+function UILibrary.CreateIntBox(parent, text)
+    local container = Instance.new("Frame")
+    container.Name = "IntBox_" .. (text or "IntBox")
+    container.Size = UDim2.new(0, 200, 0, 50)
+    container.BackgroundTransparency = 1
+    container.ZIndex = 2
+    container.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Name = "IntBoxLabel"
+    label.Size = UDim2.new(0.4, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text or "IntBox"
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 16
+    label.ZIndex = 3
+    label.Parent = container
+
+    local box = Instance.new("TextBox")
+    box.Name = "Box"
+    box.Size = UDim2.new(0.6, 0, 0.6, 0)
+    box.Position = UDim2.new(0.4, 0, 0.2, 0)
+    box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    box.BorderSizePixel = 0
+    box.Text = ""
+    box.PlaceholderText = "Number"
+    box.TextColor3 = Color3.fromRGB(220, 220, 220)
+    box.Font = Enum.Font.SourceSans
+    box.TextSize = 16
+    box.ZIndex = 3
+    box.Parent = container
+
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 4)
+    boxCorner.Parent = box
+
+    local boxStroke = Instance.new("UIStroke")
+    boxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    boxStroke.Thickness = 1
+    boxStroke.Color = Color3.fromRGB(60, 60, 60)
+    boxStroke.Parent = box
+
+    return container
+end
+
+function UILibrary.CreateSelectionBox(parent, text, options)
+    local container = Instance.new("Frame")
+    container.Name = "SelectionBox_" .. (text or "Selection")
+    container.Size = UDim2.new(0, 200, 0, 50)
+    container.BackgroundTransparency = 1
+    container.ZIndex = 2
+    container.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Name = "SelectionLabel"
+    label.Size = UDim2.new(0.4, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text or "Select"
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 16
+    label.ZIndex = 3
+    label.Parent = container
+
+    local dropdown = Instance.new("TextButton")
+    dropdown.Name = "Dropdown"
+    dropdown.Size = UDim2.new(0.6, 0, 0.6, 0)
+    dropdown.Position = UDim2.new(0.4, 0, 0.2, 0)
+    dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    dropdown.BorderSizePixel = 0
+    dropdown.Text = (options and options[1]) or "Option 1"
+    dropdown.TextColor3 = Color3.fromRGB(220, 220, 220)
+    dropdown.Font = Enum.Font.SourceSans
+    dropdown.TextSize = 16
+    dropdown.ZIndex = 3
+    dropdown.Parent = container
+
+    local ddCorner = Instance.new("UICorner")
+    ddCorner.CornerRadius = UDim.new(0, 4)
+    ddCorner.Parent = dropdown
+
+    local ddStroke = Instance.new("UIStroke")
+    ddStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    ddStroke.Thickness = 1
+    ddStroke.Color = Color3.fromRGB(60, 60, 60)
+    ddStroke.Parent = dropdown
+
+    return container
+end
+
+--------------------------------------------------
+-- Built-in Toggle Button for Mobile/Left Screen --
+--------------------------------------------------
+
+local defaultToggle = Instance.new("TextButton")
+defaultToggle.Name = "DefaultToggleButton"
+defaultToggle.Size = UDim2.new(0, 50, 0, 50)
+defaultToggle.AnchorPoint = Vector2.new(0, 0.5)
+defaultToggle.Position = UDim2.new(0, 10, 0.5, 0)
+defaultToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+defaultToggle.BorderSizePixel = 0
+defaultToggle.Text = "☰"
+defaultToggle.Font = Enum.Font.SourceSansBold
+defaultToggle.TextColor3 = Color3.new(1,1,1)
+defaultToggle.TextScaled = true
+defaultToggle.ZIndex = 4
+defaultToggle.Parent = screenGui
+
+defaultToggle.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+------------------------------------
+-- Return the library to be used. --
+------------------------------------
+return UILibrary
