@@ -68,6 +68,15 @@ function UILibrary:Initialize(options)
     end
     self.options = options
 
+    -- Registry for created components
+    self.elements = {
+        Tabs = {},
+        Buttons = {},
+        Sliders = {},
+        IntBoxes = {},
+        SelectionBoxes = {}
+    }
+
     -- ScreenGui container
     self.screenGui = create("ScreenGui", {
         Name = "UILibraryScreen",
@@ -140,21 +149,18 @@ function UILibrary:Initialize(options)
         Parent = self.titleLabel
     })
 
+    -- Enable drag on the main frame using the top bar as the handle
     enableDrag(self.mainFrame, self.topBar)
 
-    -- Tab Bar is now a scrolling container to handle many tabs dynamically.
-    self.tabBar = create("ScrollingFrame", {
+    -- Tab Bar and Pages Frame
+    self.tabBar = create("Frame", {
         Name = "TabBar",
         Size = UDim2.new(0, 110, 1, -30),
         Position = UDim2.new(0, 0, 0, 30),
         BackgroundColor3 = options.tabBar,
         BorderSizePixel = 0,
         ZIndex = 2,
-        ScrollingDirection = Enum.ScrollingDirection.Y,
-        ScrollBarThickness = 5,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = self.mainFrame,
-        ScrollBarImageColor3 = Color3.fromRGB(120, 120, 120)
+        Parent = self.mainFrame
     })
     create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = self.tabBar })
     create("UIStroke", {
@@ -163,19 +169,13 @@ function UILibrary:Initialize(options)
         Color = options.strokeTab,
         Parent = self.tabBar
     })
-
-    local tabListLayout = create("UIListLayout", {
+    create("UIListLayout", {
         Name = "TabListLayout",
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 5),
         Parent = self.tabBar
     })
-    -- Automatically update the canvas size of the scrolling frame.
-    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        self.tabBar.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y)
-    end)
 
-    -- Main Content Area
     self.pagesFrame = create("Frame", {
         Name = "Pages",
         Size = UDim2.new(1, -110, 1, -30),
@@ -229,7 +229,7 @@ function UILibrary:ShowTab(tabName)
     self.currentTab = tabName
 end
 
--- Creates a new tab with its own content page. Tabs are added to the scrolling list.
+-- Creates a new tab with its own content page and registers it
 function UILibrary:CreateTab(tabName)
     local tabButton = create("TextButton", {
         Name = "TabButton_" .. tabName,
@@ -257,6 +257,7 @@ function UILibrary:CreateTab(tabName)
         Button = tabButton,
         Page = pageFrame
     }
+    table.insert(self.elements.Tabs, {Name = tabName, Button = tabButton, Page = pageFrame})
 
     tabButton.MouseButton1Click:Connect(function()
         self:ShowTab(tabName)
@@ -269,34 +270,11 @@ function UILibrary:CreateTab(tabName)
     return pageFrame
 end
 
--- Removes an existing tab and its associated page
-function UILibrary:RemoveTab(tabName)
-    local tabData = self.tabs[tabName]
-    if tabData then
-        if tabData.Button then
-            tabData.Button:Destroy()
-        end
-        if tabData.Page then
-            tabData.Page:Destroy()
-        end
-        self.tabs[tabName] = nil
-        -- Optionally, update currentTab if needed.
-        if self.currentTab == tabName then
-            self.currentTab = nil
-            -- Show any remaining tab.
-            for name, _ in pairs(self.tabs) do
-                self:ShowTab(name)
-                break
-            end
-        end
-    end
-end
-
 --------------------------------------------------
 -- UI Element Creation Methods
 --------------------------------------------------
 
--- Creates a gradient button with hover effects
+-- Creates a gradient button with hover effects and registers it
 function UILibrary:CreateButton(parent, text, callback)
     local button = create("TextButton", {
         Name = "Button_" .. (text or "Button"),
@@ -335,10 +313,12 @@ function UILibrary:CreateButton(parent, text, callback)
     button.MouseButton1Click:Connect(function()
         if callback then callback() end
     end)
+    
+    table.insert(self.elements.Buttons, {Text = text, Button = button})
     return button
 end
 
--- Creates a slider component
+-- Creates a slider component and registers it
 function UILibrary:CreateSlider(parent, labelText)
     local container = create("Frame", {
         Name = "Slider_" .. (labelText or "Slider"),
@@ -377,10 +357,12 @@ function UILibrary:CreateSlider(parent, labelText)
         Parent = sliderBG
     })
     create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = fill })
+
+    table.insert(self.elements.Sliders, {Label = labelText, Container = container})
     return container
 end
 
--- Creates an integer input box component
+-- Creates an integer input box component and registers it
 function UILibrary:CreateIntBox(parent, labelText)
     local container = create("Frame", {
         Name = "IntBox_" .. (labelText or "IntBox"),
@@ -421,10 +403,12 @@ function UILibrary:CreateIntBox(parent, labelText)
         Color = Color3.fromRGB(60, 60, 60),
         Parent = box
     })
+
+    table.insert(self.elements.IntBoxes, {Label = labelText, Container = container})
     return container
 end
 
--- Creates a selection dropdown component
+-- Creates a selection dropdown component and registers it
 function UILibrary:CreateSelectionBox(parent, labelText, options)
     local container = create("Frame", {
         Name = "SelectionBox_" .. (labelText or "Selection"),
@@ -464,6 +448,8 @@ function UILibrary:CreateSelectionBox(parent, labelText, options)
         Color = Color3.fromRGB(60, 60, 60),
         Parent = dropdown
     })
+
+    table.insert(self.elements.SelectionBoxes, {Label = labelText, Container = container})
     return container
 end
 
