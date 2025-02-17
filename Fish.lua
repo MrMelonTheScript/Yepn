@@ -1540,7 +1540,7 @@ RunService.RenderStepped:Connect(function()
 	end
 	
 	MouseLocation = UIS:GetMouseLocation()
-	FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+	local centerPos = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
   FOVCircle.Position = centerPos
 	FOVCircle.Visible = Toggles.AimbotShowFOV.Value
 	FOVCircle.Radius = Options.AimbotFOV.Value * 12.5
